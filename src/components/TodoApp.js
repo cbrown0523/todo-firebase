@@ -1,161 +1,155 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "./todoApp.css";
-import firebase from './firebase';
-    
-    
+import firebase from "./firebase";
+
 function TodoApp() {
   const [task, setTask] = useState("");
-  const [tasklist, setTaskList] = useState([]); 
-  const [idOfUpdate, setIdOfUpdate]= useState(null);
+  const [tasklist, setTaskList] = useState([]);
+   const [idOfUpdate, setIdOfUpdate] = useState(null);
   const [truth, setTruth] = useState();
- 
-  const markCompleteGlobal = () => {
+
+   useEffect(() => {
+    populate();
+  }, []);
+
+  useEffect(() => {
     let id = idOfUpdate;
+    if (id !== null) {
+      markCompleteGlobal();
+    }
+  }, [truth]);
+
+  const markCompleteGlobal = () => {
+      let id = idOfUpdate;
     const itemtoupdate = firebase
-    .firestore()
-    .collection("tasks")
-    .doc(id);
-    
+      .firestore()
+      .collection("task")
+      .doc(id);
+
     itemtoupdate.update({
-    completed: truth,
+      isCompleted: truth,
     });
-    // debugger
+
     setIdOfUpdate(null);
     setTruth(null);
-    };
-    const markComplete = (id) => {
-
-       
-        console.log("First", idOfUpdate);
-        setIdOfUpdate(id);
-        
-        setTask(
-        task.map((tasks) => {
-        if (tasks.id === id) {
-        tasks.completed = !tasks.completed;
-        
-        setTimeout(function() {
-        setTruth(tasks.completed);
-        }, 1000);
-        }
-        return tasks;
-        })
-        )
-        console.log("Second", idOfUpdate, truth);
-        };
-
-  const AddTask=(title)=>{
-  const datas={
-        id: firebase.firestore()
-        .collection("tasks")
-        .doc().id
   };
-   const db=firebase.firestore();
-      db.collection('tasks')
-      .doc(datas.id)
-      .set({
-        task:task,
-        id:datas.id,
-        isCompleted:false}) 
-        .then(() =>{
-            populate();
-        });
-};
-        const populate = (data) =>{
-            setTaskList([]);
-            return firebase
-            .firestore()
-            .collection("tasks")
-            .get()
-            .then(function(querySnapshot){
-                querySnapshot.forEach(function(doc){
-                    let newData=doc.data();
-                    if(tasklist.indexOf(newData.id)=== -1){
-                        setTaskList((arr) =>{
-                          return [...arr, newData]  
-                        })
-                    }else{
-                        console.log("this is copy");
-                    }
-                    console.log('here are all of the todos', tasklist);
-                });
-            })
-             
-        };
-    
-    
+
   const handleChange = (e) => {
     setTask(e.target.value);
-     
-  
-    };
-      
-    
+  };
 
-  /*const AddTask = () => {
+  const AddTask = () => {
     if (task !== "") {
-      const taskDetails = {
-        id: Math.floor(Math.random() * 1000),
+        const datas = {
+      id: firebase
+        .firestore()
+        .collection("task")
+        .doc().id,
+    };
+
+     const taskDetails = {
+        id: datas.id,
         value: task,
         isCompleted: false,
       };
 
-      
-        setTaskList([...tasklist, taskDetails]);
+    const db = firebase.firestore();
+    db.collection("task")
+      .doc(datas.id)
+      .set({ value: task, isCompleted: false, id: datas.id }).then(() => {
+         setTaskList([...tasklist, taskDetails]);
+         console.log("this is a new one");
+        populate();
+      });
     }
-  };*/
-
- const deletetask = (e, id) => {
- e.preventDefault();
-  setTaskList(tasklist.filter((t) => t.id != id));
-   
   };
-  const delTodo = (id) => {
-const db = firebase.firestore();
-db.collection("tasks")
-.doc(id)
-.delete()
-/*.then(() => { setTaskList(tasklist.filter((task) => task.id != id));
 
-})*/
-.catch((error) => {
-console.error(id, "Error removing document: ", error);
-})
-.then((res) =>setTaskList([...task.filter((task) => task.id !== id)]));
-};
+    const populate = (data) => {
+
+   setTaskList([])
+    return firebase
+      .firestore()
+      .collection("task")
+      .get()
+      .then(function(querySnapshot) {
+        querySnapshot.forEach(function(doc) {
+          let newData = doc.data();
+
+          if (tasklist.indexOf(newData.id) === -1) {
+            setTaskList((arr) => {
+              return [...arr, newData];
+            });
+          } else {
+            console.log("this is a duplicate");
+          }
+          console.log("here are all of the todos", tasklist);
+        });
+      })
+      .catch((e) => console.log(e));
+  };
+
+  const deletetask = (e, id) => {
+    e.preventDefault();
+    const db = firebase.firestore();
+    db.collection("task")
+      .doc(id)
+      .delete()
+      .then(() => {
+        console.log("Document successfully deleted!", id);
+      })
+      .catch((error) => {
+        console.error(id, "Error removing document: ", error);
+      })
+      .then((res) => setTaskList([...tasklist.filter((todo) => todo.id !== id)]));
+    console.log(id, "here is an id", id);
+  };
+
 
   const taskCompleted = (e, id) => {
     e.preventDefault();
-    //let's find index of element
-    const element = tasklist.findIndex((elem) => elem.id == id);
+    setIdOfUpdate(id);
+ setTaskList(
+      tasklist.map((todo) => {
+        if (todo.id === id) {
+          todo.isCompleted = !todo.isCompleted;
 
-    //copy array into new variable
-    const newTaskList = [...tasklist];
+          setTimeout(function() {
+            setTruth(todo.isCompleted);
+          }, 1000);
+        }
+        return todo;
+      })
+    )
+    console.log("Second", idOfUpdate, truth);
 
-    //edit our element
-    newTaskList[element] = {
-      ...newTaskList[element],
-      isCompleted: true,
-    };
-
-    setTaskList(newTaskList);
   };
 
-
-    return (
-        <div className="todo">
-      <input type="text" name="text" id="text" onChange = {(e)=> handleChange(e)} placeholder="Add a task here ..."/>
-       <button className="add-btn" onClick={AddTask}>Add</button>
-       <br />
-
-       {tasklist !== [] ? (
+  return (
+    <div className="todo">
+      <input
+        type="text"
+        name="text"
+        id="text"
+        onChange={(e) => handleChange(e)}
+        placeholder="Add task here..."
+      />
+      <button className="add-btn" onClick={AddTask}>
+        Add
+      </button>
+      <br />
+      {tasklist !== [] ? (
         <ul>
           {tasklist.map((t) => (
             <li className={t.isCompleted ? "crossText" : "listitem"}>
               {t.value}
-              <button className="completed"
-                onClick={(e) => markComplete(e, t.id)}>Completed </button>  
-                <button className="delete" onClick={(e) => delTodo(e, t.id)}>
+              <button
+                className="completed"
+                onClick={(e) => taskCompleted(e, t.id)}
+              >
+                Completed
+              </button>
+
+              <button className="delete" onClick={(e) => deletetask(e, t.id)}>
                 Delete
               </button>
             </li>
@@ -164,8 +158,6 @@ console.error(id, "Error removing document: ", error);
       ) : null}
     </div>
   );
-
 }
-export default TodoApp;
 
-///onChange={props.markComplete.bind(this, props.todo.id)}
+export default TodoApp;
